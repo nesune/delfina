@@ -117,7 +117,7 @@ export const Home: React.FC = () => {
             <div className="flex justify-between items-end mb-20">
               <h2 className="text-4xl md:text-6xl font-serif">{t('home.featured')}</h2>
               <Link to="/collection" className="hidden md:block text-xs uppercase tracking-ultra hover:text-gold transition-colors">
-                {t('home.view_all')}
+                {t('home.view_all')} <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
               </Link>
             </div>
           </RevealOnScroll>

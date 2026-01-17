@@ -72,6 +72,29 @@ const translations: Record<string, { sq: string; en: string }> = {
   'admin.products': { sq: 'Produktet', en: 'Products' },
   'admin.messages': { sq: 'Mesazhet', en: 'Messages' },
   'admin.add_new': { sq: 'Shto Produkt', en: 'Add Product' },
+  'admin.logout': { sq: 'Dilni', en: 'Logout' },
+  'admin.message_read': { sq: 'Shfaq si të Lexuar', en: 'Mark as Read' },
+  'admin.add_new_product': { sq: 'Shto Produkt të Ri', en: 'Add New Product' },
+  'admin.edit_product': { sq: 'Ndryshoje Produktin', en: 'Edit Product' },
+  'admin.technical_specifications': { sq: 'Specifikat Teknike', en: 'Technical Specifications' },
+  'admin.price': { sq: 'Cmimi (Vetëm për Administratorë)', en: 'Price (For Administrators Only)' },
+  'admin.image_upload': { sq: 'Ngarkoni Fotot', en: 'Upload Images' },
+  'admin.multiple_files_allowed': { sq: 'Shumë foto lejohen • SVG, PNG, JPG ose GIF', en: 'Multiple files allowed • SVG, PNG, JPG or GIF' },
+  'admin.product_images': { sq: 'Fotot e Produktit', en: 'Product Images' },
+  'admin.first_image_as_thumbnail': { sq: 'Fotoja e Parë do shfaqet si kryesore', en: 'First Image as Thumbnail' },
+  'admin.drag_images_to_reorder': { sq: 'Tërhiqi fotot për ti renditur. Fotoja e Parë do shfaqet si kryesore.', en: 'Drag images to reorder. First image will be used as the main/product thumbnail' },
+  'admin.featured_on_home': { sq: 'Shfaqe në Ballinë', en: 'Featured on Home' },
+  'admin.visible_on_site': { sq: 'Shfaqe në Faqen e Produkteve', en: 'Visible on Site' },
+  'admin.save_product': { sq: 'Ruaj Produktin', en: 'Save Product' },
+  'admin.saving': { sq: 'Duke Ruajtur...', en: 'Saving...' },
+  'admin.cancel': { sq: 'Anulo', en: 'Cancel' },
+
+  // Tabela e produkteve ne admin dashboard
+  'admin.table.image': { sq: 'Foto', en: 'Image' },
+  'admin.table.details': { sq: 'Detajet', en: 'Details' },
+  'admin.table.category': { sq: 'Kategoria', en: 'Category' },
+  'admin.table.status': { sq: 'Statusi', en: 'Status' },
+  'admin.table.actions': { sq: 'Veprimet', en: 'Actions' },
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

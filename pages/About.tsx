@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { RevealOnScroll } from '../components/RevealOnScroll';
+import aboutHeroImage from '../assets/images/aboutImage.jpg';
+import aboutCraftsmanshipImage from '../assets/images/aboutSquareImg.jpg';
 
 export const About: React.FC = () => {
   const { t, language } = useLanguage();
@@ -9,15 +11,11 @@ export const About: React.FC = () => {
     <div className="bg-stone-50">
        {/* Header Image */}
        <div className="h-[60vh] relative overflow-hidden">
-         {import.meta.env.VITE_ABOUT_HEADER_IMAGE ? (
-           <img 
-              src={import.meta.env.VITE_ABOUT_HEADER_IMAGE} 
-              alt="Delfina Studio"
-              className="w-full h-full object-cover"
-           />
-         ) : (
-           <div className="w-full h-full bg-gradient-to-br from-stone-700 to-stone-900"></div>
-         )}
+         <img 
+            src={import.meta.env.VITE_ABOUT_HEADER_IMAGE || aboutHeroImage} 
+            alt="Delfina About Us Hero Image"
+            className="w-full h-full object-cover"
+         />
          <div className="absolute inset-0 bg-stone-900/30 flex items-center justify-center">
             <h1 className="text-5xl md:text-7xl font-serif text-white tracking-wide">{t('nav.about')}</h1>
          </div>
@@ -36,9 +34,9 @@ export const About: React.FC = () => {
 
             <RevealOnScroll delay={200}>
               <div className="grid md:grid-cols-2 gap-12 items-center">
-                {import.meta.env.VITE_ABOUT_CRAFT_IMAGE ? (
+                {import.meta.env.VITE_ABOUT_CRAFT_IMAGE || aboutCraftsmanshipImage ? (
                   <img 
-                    src={import.meta.env.VITE_ABOUT_CRAFT_IMAGE} 
+                    src={import.meta.env.VITE_ABOUT_CRAFT_IMAGE || aboutCraftsmanshipImage} 
                     alt="Craftsmanship" 
                     className="w-full h-auto shadow-xl"
                   />

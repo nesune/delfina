@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getProduct } from '../services/storage';
 import { Product } from '../types';
 import { RevealOnScroll } from '../components/RevealOnScroll';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
   const { id } = useParams();
@@ -12,6 +12,7 @@ export const ProductDetail: React.FC = () => {
   const { t, language } = useLanguage();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -50,25 +51,106 @@ export const ProductDetail: React.FC = () => {
       <div className="container mx-auto px-6 md:px-12 pt-32 pb-20">
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-32">
           
-          {/* Left: Images (Scrollable) */}
-          <div className="w-full lg:w-3/5 space-y-4 md:space-y-8">
+          {/* Left: Images */}
+          <div className="w-full lg:w-3/5">
             <Link to="/collection" className="inline-flex lg:hidden items-center gap-2 text-primary/40 hover:text-primary mb-8 transition-colors text-xs uppercase tracking-widest">
                <ArrowLeft size={16} /> Back
             </Link>
+            
             {product.images && product.images.length > 0 ? (
-              product.images.map((img, idx) => (
-                <RevealOnScroll key={idx} delay={idx * 100}>
-                  <div className="aspect-[3/4] md:aspect-[4/5] w-full bg-stone-100 overflow-hidden">
-                    <img src={img} alt={`${product.title[language]} view ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-[2s]" />
+              <div className="space-y-6">
+                {/* Main Image */}
+                <RevealOnScroll>
+                  <div 
+                    className="aspect-[3/4] md:aspect-[4/5] w-full bg-stone-100 overflow-hidden cursor-pointer"
+                    onClick={() => setSelectedImageIndex(0)}
+                  >
+                    <img 
+                      src={product.images[0]} 
+                      alt={`${product.title[language]} main view`} 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-[2s]" 
+                    />
                   </div>
                 </RevealOnScroll>
-              ))
+
+                {/* Thumbnail Gallery */}
+                {product.images.length > 1 && (
+                  <div className="grid grid-cols-4 gap-4">
+                    {product.images.slice(1).map((img, idx) => (
+                      <RevealOnScroll key={idx + 1} delay={(idx + 1) * 50}>
+                        <div
+                          className="aspect-square bg-stone-100 overflow-hidden cursor-pointer border-2 border-transparent hover:border-gold transition-all group"
+                          onClick={() => setSelectedImageIndex(idx + 1)}
+                        >
+                          <img 
+                            src={img} 
+                            alt={`${product.title[language]} view ${idx + 2}`} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          />
+                        </div>
+                      </RevealOnScroll>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="aspect-[3/4] md:aspect-[4/5] w-full bg-stone-200 flex items-center justify-center text-primary/30">
                 No images available
               </div>
             )}
           </div>
+
+          {/* Image Carousel Modal */}
+          {selectedImageIndex !== null && product.images && (
+            <div 
+              className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+              onClick={() => setSelectedImageIndex(null)}
+            >
+              <button
+                onClick={() => setSelectedImageIndex(null)}
+                className="absolute top-4 right-4 text-white hover:text-gold transition-colors z-10"
+              >
+                <X size={32} />
+              </button>
+              
+              {product.images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : product.images!.length - 1);
+                    }}
+                    className="absolute left-4 text-white hover:text-gold transition-colors z-10 p-2"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImageIndex(selectedImageIndex < product.images!.length - 1 ? selectedImageIndex + 1 : 0);
+                    }}
+                    className="absolute right-4 text-white hover:text-gold transition-colors z-10 p-2"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
+                </>
+              )}
+
+              <div className="max-w-7xl max-h-[90vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <img 
+                  src={product.images[selectedImageIndex]} 
+                  alt={`${product.title[language]} view ${selectedImageIndex + 1}`}
+                  className="max-w-full max-h-[90vh] object-contain"
+                />
+              </div>
+
+              {product.images.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/60 text-sm">
+                  {selectedImageIndex + 1} / {product.images.length}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Right: Info (Sticky) */}
           <div className="w-full lg:w-2/5">

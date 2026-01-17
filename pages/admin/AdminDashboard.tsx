@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getProducts, saveProduct, deleteProduct, getMessages, markMessageRead } from '../../services/storage';
 import { Product, ContactSubmission, Category } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { Trash2, Edit, CheckCircle, Eye, EyeOff, Plus, Upload, X } from 'lucide-react';
+import { Trash2, Edit, CheckCircle, Eye, EyeOff, Plus, Upload, X, DoorClosed, DoorOpen, DoorOpenIcon } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
@@ -19,6 +19,8 @@ export const AdminDashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editProduct, setEditProduct] = useState<Partial<Product>>({});
   const [saving, setSaving] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     refreshData();
@@ -98,10 +100,7 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
 
-    if (!editProduct.images || editProduct.images.length === 0) {
-      alert('Please add at least one product image.');
-      return;
-    }
+    // Note: Images are optional - user can save and add images later
 
     setSaving(true);
     try {
@@ -133,18 +132,83 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setEditProduct(prev => ({
-          ...prev,
-          images: [base64String] // Currently handling single image for simplicity in UI, easy to extend
-        }));
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Convert all files to base64 and add to images array
+    const fileArray = Array.from(files);
+    const promises = fileArray.map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(promises).then((base64Images) => {
+      setEditProduct(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...base64Images]
+      }));
+    });
+
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setEditProduct(prev => ({
+      ...prev,
+      images: prev.images?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedImageIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedImageIndex !== null && draggedImageIndex !== index) {
+      setDragOverIndex(index);
     }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedImageIndex === null || draggedImageIndex === dropIndex) {
+      setDraggedImageIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newImages = [...(editProduct.images || [])];
+    const draggedImage = newImages[draggedImageIndex];
+    
+    // Remove dragged image from its position
+    newImages.splice(draggedImageIndex, 1);
+    
+    // Insert at new position
+    newImages.splice(dropIndex, 0, draggedImage);
+    
+    setEditProduct(prev => ({
+      ...prev,
+      images: newImages
+    }));
+    
+    setDraggedImageIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedImageIndex(null);
+    setDragOverIndex(null);
   };
 
   if (isEditing) {
@@ -153,7 +217,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="bg-white w-full max-w-4xl shadow-2xl rounded-none max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center p-6 border-b border-stone-100 bg-white sticky top-0 z-10">
              <h2 className="text-2xl font-serif text-primary">
-               {editProduct.id && products.find(p => p.id === editProduct.id) ? 'Edit Product' : 'Add New Product'}
+                {editProduct.id && products.find(p => p.id === editProduct.id) ? t('admin.edit_product') : t('admin.add_new_product')}
              </h2>
              <button onClick={() => setIsEditing(false)} className="text-stone-400 hover:text-red-500 transition-colors">
                <X size={24} />
@@ -207,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Specifications Section */}
             <div className="bg-stone-50 p-6 border border-stone-100">
-              <h3 className="text-sm font-serif font-bold text-primary mb-6">Technical Specifications</h3>
+              <h3 className="text-sm font-serif font-bold text-primary mb-6">{t('admin.technical_specifications')}</h3>
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-2">
                   <label className="block text-xs uppercase tracking-widest font-bold text-stone-500">Dimensionet (SQ)</label>
@@ -233,7 +297,7 @@ export const AdminDashboard: React.FC = () => {
             {/* Price and Category */}
             <div className="grid md:grid-cols-2 gap-8">
                <div className="space-y-2">
-                  <label className="block text-xs uppercase tracking-widest font-bold text-stone-500">Price (Internal Use)</label>
+                  <label className="block text-xs uppercase tracking-widest font-bold text-stone-500">{t('admin.price')}</label>
                   <input 
                     className="w-full bg-stone-50 border border-stone-200 p-4 text-stone-900 focus:outline-none focus:border-gold focus:bg-white transition-colors" 
                     value={editProduct.price} 
@@ -257,24 +321,78 @@ export const AdminDashboard: React.FC = () => {
                </div>
             </div>
 
-            {/* Image Upload */}
-            <div className="space-y-2">
-               <label className="block text-xs uppercase tracking-widest font-bold text-stone-500">Product Image</label>
-               <div className="flex items-center gap-6">
-                 {editProduct.images && editProduct.images.length > 0 && editProduct.images[0] && (
-                   <div className="w-32 h-32 bg-stone-100 border border-stone-200 flex-shrink-0">
-                     <img src={editProduct.images[0]} alt="Preview" className="w-full h-full object-cover" />
-                   </div>
-                 )}
-                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 mb-2 text-stone-400" />
-                        <p className="mb-2 text-sm text-stone-500"><span className="font-semibold">Click to upload</span></p>
-                        <p className="text-xs text-stone-400">SVG, PNG, JPG or GIF</p>
-                    </div>
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                </label>
-               </div>
+            {/* Image Upload - Multiple Images */}
+            <div className="space-y-4">
+               <label className="block text-xs uppercase tracking-widest font-bold text-stone-500">{t('admin.product_images')}</label>
+               
+               {/* Image Grid */}
+               {editProduct.images && editProduct.images.length > 0 && (
+                 <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                   {editProduct.images.map((img, idx) => (
+                     <div
+                       key={idx}
+                       draggable
+                       onDragStart={() => handleDragStart(idx)}
+                       onDragOver={(e) => handleDragOver(e, idx)}
+                       onDragLeave={handleDragLeave}
+                       onDrop={(e) => handleDrop(e, idx)}
+                       onDragEnd={handleDragEnd}
+                       className={`relative group cursor-move transition-all ${
+                         draggedImageIndex === idx ? 'opacity-50 scale-95' : ''
+                       } ${
+                         dragOverIndex === idx ? 'ring-2 ring-gold scale-105' : ''
+                       }`}
+                     >
+                       <div className={`aspect-square bg-stone-100 border-2 overflow-hidden transition-all ${
+                         dragOverIndex === idx ? 'border-gold' : 'border-stone-200'
+                       }`}>
+                         <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                       </div>
+                       <button
+                         type="button"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           removeImage(idx);
+                         }}
+                         className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                         title="Remove image"
+                       >
+                         <X size={14} />
+                       </button>
+                       {idx === 0 && (
+                         <div className="absolute bottom-1 left-1 bg-primary text-white text-[10px] px-2 py-0.5 uppercase font-bold">
+                           Main
+                         </div>
+                       )}
+                       <div className="absolute top-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                         Drag
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+               {editProduct.images && editProduct.images.length > 1 && (
+                 <p className="text-xs text-stone-400 italic">💡{t('admin.drag_images_to_reorder')} </p>
+               )}
+
+               {/* Upload Button */}
+               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100 transition-colors">
+                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                   <Upload className="w-8 h-8 mb-2 text-stone-400" />
+                   <p className="mb-2 text-sm text-stone-500">
+                     <span className="font-semibold">{t('admin.image_upload')}</span>
+                   </p>
+                   <p className="text-xs text-stone-400">{t('admin.multiple_files_allowed')}</p>
+                 </div>
+                 <input 
+                   type="file" 
+                   className="hidden" 
+                   accept="image/*" 
+                   multiple
+                   onChange={handleImageUpload} 
+                 />
+               </label>
+               <p className="text-xs text-stone-400">{t('admin.first_image_as_thumbnail')}</p>
             </div>
 
             <div className="flex flex-wrap gap-8 py-4 border-t border-stone-100">
@@ -283,7 +401,7 @@ export const AdminDashboard: React.FC = () => {
                    {editProduct.isFeatured && <div className="w-2 h-2 bg-white rounded-full"></div>}
                 </div>
                 <input type="checkbox" className="hidden" checked={editProduct.isFeatured} onChange={e => setEditProduct({...editProduct, isFeatured: e.target.checked})} />
-                <span className="text-sm font-bold uppercase tracking-wide text-stone-600 group-hover:text-primary transition-colors">Featured on Home</span>
+                <span className="text-sm font-bold uppercase tracking-wide text-stone-600 group-hover:text-primary transition-colors">{t('admin.featured_on_home')}</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer group">
@@ -291,7 +409,7 @@ export const AdminDashboard: React.FC = () => {
                    {editProduct.isVisible && <div className="w-2 h-2 bg-white rounded-full"></div>}
                 </div>
                 <input type="checkbox" className="hidden" checked={editProduct.isVisible} onChange={e => setEditProduct({...editProduct, isVisible: e.target.checked})} />
-                <span className="text-sm font-bold uppercase tracking-wide text-stone-600 group-hover:text-primary transition-colors">Visible on Site</span>
+                <span className="text-sm font-bold uppercase tracking-wide text-stone-600 group-hover:text-primary transition-colors">{t('admin.visible_on_site')}</span>
               </label>
             </div>
 
@@ -301,14 +419,14 @@ export const AdminDashboard: React.FC = () => {
                 disabled={saving}
                 className="flex-1 bg-primary text-white py-4 uppercase tracking-widest text-sm font-bold hover:bg-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? 'Saving...' : 'Save Product'}
+                {saving ? t('admin.saving') : t('admin.save_product')}
               </button>
               <button 
                 type="button" 
                 onClick={() => setIsEditing(false)} 
                 className="px-8 border border-stone-200 text-stone-500 uppercase tracking-widest text-sm font-bold hover:bg-stone-100 transition-colors"
               >
-                Cancel
+                {t('admin.cancel')}
               </button>
             </div>
           </form>
@@ -332,9 +450,9 @@ export const AdminDashboard: React.FC = () => {
                  console.error('Error signing out:', error);
                }
              }}
-             className="text-xs uppercase tracking-widest text-red-500 hover:text-red-700 border-b border-red-200 pb-1"
+             className="text-xs uppercase tracking-widest font-bold text-red-500 hover:text-red-700 border-b border-red-200 pb-1"
           >
-            Logout
+             {t('admin.logout')}
           </button>
         </div>
 
@@ -375,11 +493,11 @@ export const AdminDashboard: React.FC = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-stone-200 text-stone-400 text-xs uppercase tracking-widest">
-                        <th className="py-4 pr-4 font-normal">Image</th>
-                        <th className="py-4 px-4 font-normal">Details</th>
-                        <th className="py-4 px-4 font-normal">Category</th>
-                        <th className="py-4 px-4 font-normal">Status</th>
-                        <th className="py-4 px-4 text-right font-normal">Actions</th>
+                        <th className="py-4 pr-4 font-normal">{t('admin.table.image')}</th>
+                        <th className="py-4 px-4 font-normal">{t('admin.table.details')}</th>
+                        <th className="py-4 px-4 font-normal">{t('admin.table.category')}</th>
+                        <th className="py-4 px-4 font-normal">{t('admin.table.status')}</th>
+                        <th className="py-4 px-4 text-right font-normal">{t('admin.table.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -445,14 +563,14 @@ export const AdminDashboard: React.FC = () => {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h4 className="font-serif text-xl text-primary mb-1">{m.name}</h4>
-                        <p className="text-xs uppercase tracking-widest text-stone-400">{m.email}</p>
+                        <p className="text-xs tracking-widest text-stone-400">{m.email}</p>
                       </div>
                       <span className="text-xs text-stone-400 font-mono">{new Date(m.date).toLocaleDateString()}</span>
                     </div>
                     <p className="text-stone-600 mb-6 leading-relaxed border-t border-stone-100 pt-4">{m.message}</p>
                     {!m.read && (
                       <button onClick={() => handleToggleRead(m.id)} className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-gold hover:text-primary transition-colors">
-                        <CheckCircle size={14} /> Mark as Read
+                        <CheckCircle size={14} /> {t('admin.message_read')}
                       </button>
                     )}
                   </div>
